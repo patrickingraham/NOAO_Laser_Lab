@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.fftpack import fft
 import logging
 from gpiozero import LED
+from gpiozero import Button
+from time import sleep
 
 logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
                     level=logging.INFO,
@@ -11,11 +13,15 @@ logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
 logger = logging.getLogger(__name__)
 logger.propagate = True
 
+relay = LED(16)
+# Switch goes from 3.3V to GPIO, so need to set pull_up = False
+restart_button = Button(23, pull_up=False)
+
 def record_data(duration, fs):
     logger.debug('Check input settings')
-    sd.check_input_settings(device=input, samplerate=fs, channels=2)
+    sd.check_input_settings(device=input, samplerate=fs, channels=1)
     logger.debug(f'Starting to record for {duration} seconds')
-    data = sd.rec(frames=int(duration * fs), samplerate=fs, channels=2, blocking=True)
+    data = sd.rec(frames=int(duration * fs), samplerate=fs, channels=1, blocking=True)
     # sd.wait()
     return data
 
@@ -23,8 +29,8 @@ def record_data(duration, fs):
 def analyze_data(data, fs):
 
     # average the tracks
-    a = (data.T[0] + data.T[1])/2.0
-
+#    a = (data.T[0] + data.T[1])/2.0
+    a = data.T[0]
     # Make the array an even size
     if (len(a) % 2) != 0:
         logger.debug(f'Length of a is {len(a)}, removing last value')
@@ -51,13 +57,13 @@ def analyze_data(data, fs):
     # threshold is in sigma over the range of 950-1050 Hz
     threshold = 10
 
-    logger.debug(f'Median of frequency vals are {np.median(xf[(xf > 995) * (xf < 1005)])}')
+    logger.debug(f'Median of frequency vals are {(np.median(xf[(xf > 995) * (xf < 1005)])):0.2f}')
     psd_at_1kHz = np.max(psd[(xf > 995) * (xf < 1005)])
     bkg = np.median(psd[(xf > 950) * (xf < 1050)])
 
-    logger.debug(f'PSD max value in frequency window of 995-1050 Hz is {psd_at_1kHz / bkg} sigma')
+    logger.debug(f'PSD max value in frequency window of 995-1050 Hz is {(psd_at_1kHz / bkg):0.2f} sigma')
 
-    logger.debug(f'Median value over range from 900-1000 Hz is {bkg}')
+    logger.debug(f'Median value over range from 900-1000 Hz is {bkg:0.2E}')
     condition = (psd_at_1kHz) > threshold * bkg
     if condition:
         return True
@@ -94,20 +100,34 @@ def plot_data(data, fs, xf, yf, psd):
     plt.draw()
     plt.pause(0.001)
 
-def open_laser_interrupt(relay):
-
-    relay.on()
-    logger.info('Laser interrupt opened')
-
-def close_laser_interrupt(relay):
+def open_laser_interrupt():
 
     relay.off()
-    logger.info('Laser Interrupt Activated, laser propagation disabled')
+    logger.info('Laser interrupt opened')
 
+def close_laser_interrupt():
+
+    relay.on()
+    logger.info('Laser Interrupt Activated, laser propagation disabled')
+    
+def restart():
+    
+    logger.info('Reset putton pushed')
+    open_laser_interrupt()
+
+def get_relay_status():
+    
+    # bits are flipped since relay.value returns a 0 when it's able to propagate
+    status = not relay.value
+    
+    return status
 
 def main(time, fs):
     logger.info('Starting monitoring loop')
 
+    # Set a callback on the button such that when it is pushed the relay gets turned back on
+    restart_button.when_pressed = restart
+    
     # Declare how many iterations have to be above the threshold to shut off
     # the laser
     count_threshold = 10
@@ -115,26 +135,29 @@ def main(time, fs):
 
     # Loop until broken
     while(count >= 0):
-        data = record_data(time, fs)
-        result = analyze_data(data, fs)
+        
+        if get_relay_status() is True:
+            data = record_data(time, fs)
+            result = analyze_data(data, fs)
 
-        if result and count > count_threshold-1:
-            logger.warning('Detected misalignment in audible safety circuit')
-            turn_off_laser()
-            break
-        elif result:
-            logger.info(f'Experienced value above threshold {count+1} times')
-            count += 1
+            if result and count > count_threshold-1:
+                logger.warning('Detected misalignment in audible safety circuit')
+                close_laser_interrupt()
+            elif result:
+                logger.info(f'Experienced value above threshold {count+1} times')
+                count += 1
+            else:
+                count = 0
         else:
-            count = 0
+            sleep(1)
 
 
 if __name__ == "__main__":
 
     logger.debug(f'Available devices are: {sd.query_devices()}')
 
-    input = 6
-    output = 6
+    input = 2
+    output = 4
     # sd.default.device = (1, 2)              # 2 works for output with IC94 sound setup input never worked
     sd.default.device = (input, output)
 
@@ -147,7 +170,7 @@ if __name__ == "__main__":
     logger.info(f'Sample length is {time}')
 
     logger.info('Opening laser interrupt to enable operation')
-    relay = LED(16)
-    open_laser_interrupt(relay)
 
+    open_laser_interrupt()
+    
     main(time, fs)
