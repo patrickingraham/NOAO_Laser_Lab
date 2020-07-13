@@ -1,3 +1,5 @@
+# This is a test program to verify functionality of the library
+
 import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
@@ -9,7 +11,7 @@ fs=44100
 #fs = 48000
 
 
-
+# Patrick Laptop on CentOS7 VM
 input=6
 output=6
 #sd.default.device = (1, 2)              # 2 works for output with IC94 sound setup input never worked
