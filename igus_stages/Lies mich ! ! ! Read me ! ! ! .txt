@@ -1,0 +1,40 @@
+*********************************** GERMAN ******************************************************
+#Python Beispiel-Programm zur Kommunikation/Steuerung der dyve D1 über Modbus TCP als Gateway (Ethernet basiert)
+#Version 1.2
+#24.01.2020
+
+#Programmiersprache Python 3.6 
+#Bitte mit dem Standard Raspian Editor "Thonny" (Raspberry PI, ab Noobs 3.2) oder idle 3.7 ausführen. 
+
+#Steuerung einer Einzelachse
+#Es muss die mitgelieferte dryve D1 Konfigurationen geladen sein: 20200124 dryve D1 Modbus Python.txt
+#Die IP Adresse der dryve D1 muss mit der unter "s.connect" eingetragenen IP Adresse übereinstimmen. 
+#Im Programm können alle Bewegungsparameter angepasst werden. Z.B. Geschwindigkeit, Beschleunigung oder die Strecke.
+
+#Bitte immer die neueste Firmware von der Webseite www.igus.de/dryve verwenden!!!
+
+#Für das Musterprogram wird kein Support bereitgestellt.
+#Ebenfalls wird keine Verantwortung/Haftung für das Programm übernommen.
+*********************************** GERMAN ******************************************************
+
+
+
+*********************************** English *****************************************************
+#Python sample programm demonstrating the communication/control of a dryve D1 via Modbus TCP as a Gateway (Ethernet based)
+#Version 1.2
+#24.01.2020
+
+
+#Programing language: Python 3.6
+#Please use the standard Raspian editor "Thonny" (Raspberry Pi since Noobs 3.2) or idle 3.7 to execute the program.
+
+#Single axis control
+#The supplied dryve D1 configuration must be loaded: 20200124 dryve D1 Modbus Pyhton.txt
+#The IP address of the dryve D1 must match with the IP address stated at "s.connect".
+#All movement parameter can be adopted. E.g. speed, acceleration or position.
+
+#Please use the latest firmware available at www.igus.eu/dryve!!!
+
+#No support is provided for this sample program.
+#No responsibility/liability will be assumed for the test program.
+*********************************** English *****************************************************
